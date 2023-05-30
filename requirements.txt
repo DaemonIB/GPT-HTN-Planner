@@ -1,0 +1,10 @@
+openai
+networkx
+matplotlib
+tk
+graphviz
+pillow
+flask_socketio
+simple-websocket
+flask-cors
+chromadb
