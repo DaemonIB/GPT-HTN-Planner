@@ -36,13 +36,13 @@ For best results use GPT-4, though other OpenSource LLMs may suffice with modifi
     - `python src/main.py`
     - Enter the initial state
       - This is any information that you want the system to know before it begins planning
-      - You may put "None" or nothing in this input
+      - You may put `None` or nothing in this input
     - Describe your goal
       - Enter the goal that the system is planning to reach
-      - Ex: "eat a ham sandwich"
+      - Ex: `eat a ham sandwich`
     - Default capabilities
       - These are the tools that the planner may consider using when creating the plan
-      - This defaults to "Linux terminal, internet access", you can just press enter to use these
+      - This defaults to `Linux terminal, internet access`, you can just press enter to use these
 
 - Frontend:
   - Go into the frontend directory
