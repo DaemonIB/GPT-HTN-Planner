@@ -49,7 +49,29 @@ For best results use GPT-4, though other OpenSource LLMs may suffice with modifi
     - `cd src/frontend`
   - Start the frontend
     - `npm start`
+
 **Credits**:
   - DaemonIB
   - GPT-4
   - Bard
+
+**References**:
+  - HTN
+    - Papers
+      - https://arxiv.org/pdf/1106.4869.pdf
+      - https://arxiv.org/pdf/1403.7426.pdf
+      - https://www.cs.umd.edu/~nau/papers/nau2021gtpyhop.pdf
+    - Books
+      - [Automated Planning, Theory and Practice (2008) by Malik Ghallab, Dana Nau, Paolo Traverso](https://www.google.com/books/edition/Automated_Planning/eCj3cKC_3ikC?hl=en&gbpv=0) (chapter 11)
+    - Implementations and Documentation
+      - https://www.cs.umd.edu/projects/shop/description.html
+      - https://github.com/ptrefall/fluid-hierarchical-task-network
+      - https://github.com/maksmaisak/htn
+      - https://maksmaisak.github.io/htn/front.html
+      - https://github.com/dananau/GTPyhop
+    - Videos
+      - https://www.youtube.com/watch?v=7L3tcoFMR7w
+      - https://www.youtube.com/watch?v=MypF9_5wvlM
+      - https://www.youtube.com/watch?v=7rHi4FwlJw4
+      - https://www.youtube.com/watch?v=kXm467TFTcY
+      - https://www.youtube.com/watch?v=XxuSFBVQULY
