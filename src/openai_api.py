@@ -7,7 +7,7 @@ import openai
 openai.api_key = os.environ.get('OPENAI_KEY')
 
 
-def call_openai_api(prompt, max_tokens=None):
+def call_openai_api(prompt, max_tokens=None, temperature=1.0):
     retries = 3
     delay = 5
 
@@ -19,7 +19,7 @@ def call_openai_api(prompt, max_tokens=None):
                 max_tokens=max_tokens,
                 n=1,
                 stop=None,
-                temperature=0.5,
+                temperature=temperature,
             )
             return response
         except openai.error.RateLimitError as e:

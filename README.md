@@ -43,6 +43,9 @@ For best results use GPT-4, though other OpenSource LLMs may suffice with modifi
     - Default capabilities
       - These are the tools that the planner may consider using when creating the plan
       - This defaults to `Linux terminal, internet access`, you can just press enter to use these
+    - Choose planner
+      - Options for creating plans using different types of planning algorithms. Options like, the HTN Planner and A* Search Planner.
+      - This defaults to using the HTN Planner
 
 - Frontend:
   - Go into the frontend directory

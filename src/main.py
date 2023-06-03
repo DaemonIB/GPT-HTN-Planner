@@ -3,9 +3,10 @@ import threading
 from flask import Flask
 from flask_cors import CORS
 from flask_socketio import SocketIO
+from htn_planner import HTNPlanner
+from search_planner import SearchPlanner
 
 from gpt4_utils import get_initial_task, compress_capabilities
-from htn_planner import htn_planning
 from text_utils import trace_function_calls
 
 app = Flask(__name__)
@@ -66,10 +67,25 @@ def main():
     goal_task = get_initial_task(goal_input)
     compressed_capabilities = compress_capabilities(capabilities_input)
 
+    planner_choice = input("Choose planner: (1) HTN Planner (default), (2) A* Search Planner: ").strip()
+    if planner_choice == "2":
+        use_search_planner = True
+        print("A* search planner selected")
+    else:
+        print("HTN planner selected")
+        use_search_planner = False
+
     server_thread = threading.Thread(target=run_server)
     server_thread.start()
-    print("Starting HTN planning with the initial goal task:", goal_task)
-    plan = htn_planning(initial_state_input, goal_task, compressed_capabilities, 5, send_task_node_update)
+    print("Starting planning with the initial goal task:", goal_task)
+
+    if use_search_planner:
+        search_planner = SearchPlanner(initial_state_input, goal_task, compressed_capabilities, 100,
+                                       send_task_node_update)
+        plan = search_planner.plan()
+    else:
+        htn_planner = HTNPlanner(initial_state_input, goal_task, compressed_capabilities, 5, send_task_node_update)
+        plan = htn_planner.htn_planning()
 
     if plan:
         print("Plan found:")
