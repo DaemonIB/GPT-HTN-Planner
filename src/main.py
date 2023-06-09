@@ -80,7 +80,7 @@ def main():
     print("Starting planning with the initial goal task:", goal_task)
 
     if use_search_planner:
-        search_planner = SearchPlanner(initial_state_input, goal_task, compressed_capabilities, 100,
+        search_planner = SearchPlanner(initial_state_input, goal_task, compressed_capabilities, 5000,
                                        send_task_node_update)
         plan = search_planner.plan()
     else:

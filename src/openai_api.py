@@ -3,30 +3,36 @@ import os
 import time
 
 import openai
+from ratelimiter import RateLimiter
 
 openai.api_key = os.environ.get('OPENAI_KEY')
 
+# Configure the rate limiter to allow a maximum of 10 calls per minute
+rate_limiter = RateLimiter(max_calls=10, period=60)
 
-def call_openai_api(prompt, max_tokens=None, temperature=1.0):
+
+def call_openai_api(prompt, max_tokens=None, temperature=1.0, strip=False):
     retries = 3
     delay = 5
 
     while retries > 0:
         try:
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{"role": "system", "content": prompt}],
-                max_tokens=max_tokens,
-                n=1,
-                stop=None,
-                temperature=temperature,
-            )
-            return response
+            # Use the rate limiter to ensure the API is not called too frequently
+            with rate_limiter:
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=[{"role": "system", "content": prompt}],
+                    max_tokens=max_tokens,
+                    n=1,
+                    stop=None,
+                    temperature=temperature,
+                )
+            return response.choices[0].message.content.strip() if strip else response
         except openai.error.RateLimitError as e:
             print(f"RateLimitError encountered: {e}. Retrying in {delay} seconds...")
             retries -= 1
             time.sleep(delay)
-        except openai.error.APIError as e:  # Add this block to handle APIError
+        except openai.error.APIError as e:
             print(f"APIError encountered: {e}. Retrying in {delay} seconds...")
             retries -= 1
             time.sleep(delay)

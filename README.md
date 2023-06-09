@@ -15,6 +15,12 @@ For best results use GPT-4, though other OpenSource LLMs may suffice with modifi
 - Text Parsing - Parses and extracts information from the natural language responses produced by the LLM
 - Task Translation - Attempts to translate a low level task into a command or piece of code that can be executed.
 - Frontend - A simple react frontend to display a hierarchy representing the plan
+- Prompt Evolver - An application designed to automatically generate prompts using evolutionary algorithms
+  - Selection is performed using `roulette wheel selection`
+  - Mutation is performed by the LLM
+  - Recombination is performed by the LLM using the results of selection
+  - Fitness is determined by the LLM and is normalized using a z-score so that results can be compared using standard deviations
+  - Environment topology is a 2D toroidal grid that adjusts to local or global optimization dynamically
 - Logs - A large variety of logs are generated in the "logs" folder and function traces can be found in "function_trace.log"
   - function_trace.log - Tracks all the function calls annotated with "@trace_function_calls"
   - The logs in the "logs" folder each track a particular sub-system using the "log_response" function
@@ -32,7 +38,7 @@ For best results use GPT-4, though other OpenSource LLMs may suffice with modifi
   - Set the environment variable `OPENAI_KEY` to your OpenAI api key
   - Install Dependencies
     - Run `pip install -r requirements.txt`
-  - Run Application
+  - Run Planning Application
     - `python src/main.py`
     - Enter the initial state
       - This is any information that you want the system to know before it begins planning
@@ -46,6 +52,9 @@ For best results use GPT-4, though other OpenSource LLMs may suffice with modifi
     - Choose planner
       - Options for creating plans using different types of planning algorithms. Options like, the HTN Planner and A* Search Planner.
       - This defaults to using the HTN Planner
+  - Run Prompt Evolver Application
+    - `python src/prompt_evolver.py`
+    - Enter in the goal or problem that you'd like prompts designed around.
 
 - Frontend:
   - Go into the frontend directory

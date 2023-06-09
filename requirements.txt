@@ -9,3 +9,4 @@ simple-websocket
 flask-cors
 chromadb
 networkx
+ratelimiter
