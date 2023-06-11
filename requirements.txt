@@ -10,3 +10,5 @@ flask-cors
 chromadb
 networkx
 ratelimiter
+langchain
+guidance

@@ -1,3 +1,7 @@
 src/__pycache__/**/*
 .idea/
 .vscode/
+src/api_tests/
+logs/
+src/logs
+*.log

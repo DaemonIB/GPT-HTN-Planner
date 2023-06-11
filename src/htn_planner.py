@@ -3,12 +3,10 @@
 # to the LLM
 
 from gpt4_utils import gpt4_is_goal, is_task_primitive, can_execute, log_state_change
-from openai_api import call_openai_api, log_response
+from openai_api import call_openai_api, log_response, guidance_gpt4_api
 from task_node import TaskNode
 from text_utils import extract_lists, trace_function_calls
-
-
-# from vector_db import VectorDB
+from guidance_prompts import htn_prompts
 
 class HTNPlanner:
     def __init__(self, initial_state, goal_task, capabilities_input, max_depth=5, send_update_callback=None):
@@ -64,11 +62,8 @@ class HTNPlanner:
 
     @trace_function_calls
     def translate_task(self, task, capabilities_input):
-        prompt = (f"Translate the task '{task}' into a form that can be executed using the following capabilities: "
-                f"'{capabilities_input}'. Provide the executable form in a single line without any commentary "
-                f"or superfluous text.")
-        response = call_openai_api(prompt)
-        translated_task = response.choices[0].message.content.strip()
+        response = htn_prompts.translate(task, capabilities_input, guidance_gpt4_api)
+        translated_task = response.strip()
         log_response("translate_task", translated_task)
         return translated_task
 
