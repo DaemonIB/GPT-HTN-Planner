@@ -1,6 +1,6 @@
 import uuid
 
-from src.text_utils import trace_function_calls
+from text_utils import trace_function_calls
 
 
 class TaskNode:

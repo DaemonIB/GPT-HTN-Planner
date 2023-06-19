@@ -3,7 +3,7 @@
 # to the LLM
 
 from gpt4_utils import gpt4_is_goal, is_task_primitive, can_execute, log_state_change
-from openai_api import call_openai_api, log_response, guidance_gpt4_api
+from openai_api import call_openai_api, log_response
 from task_node import TaskNode
 from text_utils import extract_lists, trace_function_calls
 from guidance_prompts import htn_prompts
@@ -62,7 +62,7 @@ class HTNPlanner:
 
     @trace_function_calls
     def translate_task(self, task, capabilities_input):
-        response = htn_prompts.translate(task, capabilities_input, guidance_gpt4_api)
+        response = htn_prompts.translate(task, capabilities_input)
         translated_task = response.strip()
         log_response("translate_task", translated_task)
         return translated_task
@@ -71,12 +71,7 @@ class HTNPlanner:
     # Add a new function to check if subtasks meet the requirements
     @trace_function_calls
     def check_subtasks(self, task, subtasks, capabilities_input):
-        prompt = (f"Given the parent task '{task}', and its subtasks '{', '.join(subtasks)}', "
-                f"check if these subtasks effectively and comprehensively address the requirements "
-                f"of the parent task without any gaps or redundancies, using the following capabilities: "
-                f"'{capabilities_input}'. Return 'True' if they meet the requirements or 'False' otherwise.")
-        response = call_openai_api(prompt, 5)
-        result = response.choices[0].message.content.strip().lower()
+        result = htn_prompts.check_subtasks(task, subtasks, capabilities_input)
         log_response("check_subtasks", result)
         return result == 'true'
 
@@ -121,12 +116,15 @@ class HTNPlanner:
                 best_candidate = None  # Add a variable to store the best candidate
                 best_candidate_score = float('-inf')  # Add a variable to store the best candidate score
 
-                # Create n candidate lists of subtask decompositions. If one list of subtasks passes
-                # the check_subtasks requirements then continue using that candidate.
-                # If the list of subtasks fails the check then continue until one passes or candidates are exhausted.
-                # Track the effectiveness of each candidate using the evaluate_candidate function
-                # If candidates are exhausted, choose the best candidate list of subtasks and continue.
+                """
+                Create n candidate lists of subtask decompositions. If one list of subtasks passes
+                the check_subtasks requirements then continue using that candidate.
+                If the list of subtasks fails the check then continue until one passes or candidates are exhausted.
+                Track the effectiveness of each candidate using the evaluate_candidate function
+                If candidates are exhausted, choose the best candidate list of subtasks and continue.
+                """
                 candidates = []
+                subtasks_list = []
                 for _ in range(n_candidates):
                     subtasks_list = self.get_subtasks(task, decompose_state, remaining_decompositions, capabilities_input)
                     score = self.evaluate_candidate(task, [subtask for subtask in subtasks_list], capabilities_input)
@@ -181,17 +179,13 @@ class HTNPlanner:
 
     @trace_function_calls
     def evaluate_candidate(self, task, subtasks, capabilities_input):
-        prompt = (f"Given the parent task '{task}', and its subtasks '{', '.join(subtasks)}', "
-                f"evaluate how well these subtasks address the requirements "
-                f"of the parent task without any gaps or redundancies, using the following capabilities: "
-                f"'{capabilities_input}'. Return a score between 0 and 1, where 1 is the best possible score.")
-
         max_retries = 3
         retries = 0
         while retries < max_retries:
-            response = call_openai_api(prompt, max_tokens=10)  # Max 10 token or 8 digits after the decimal 0.99999999
+            # Max 10 token or 8 digits after the decimal 0.99999999
+            response = htn_prompts.evaluate_candidate(task, subtasks, capabilities_input)
             try:
-                score = float(response.choices[0].message.content.strip())
+                score = float(response.strip())
                 log_response("evaluate_candidate", score)
                 return score
             except ValueError:
@@ -202,17 +196,7 @@ class HTNPlanner:
 
     @trace_function_calls
     def get_subtasks(self, task, state, remaining_decompositions, capabilities_input):
-        prompt = (f"Given the task '{task}', the current state '{state}', "
-                f"and {remaining_decompositions} decompositions remaining before failing, "
-                f"please decompose the task into a detailed step-by-step plan "
-                f"that can be achieved using the following capabilities: "
-                f"'{capabilities_input}'. Provide the subtasks in a comma-separated list, "
-                f"each enclosed in square brackets: [subtask1], [subtask2], ...")
-        response = call_openai_api(prompt)
-
-        log_response("get_subtasks", response.choices[0].message.content)
-        subtasks_with_types = response.choices[0].message.content.strip()
-
+        subtasks_with_types = htn_prompts.get_subtasks(task, state, remaining_decompositions, capabilities_input)
         print(f"Decomposing task {task} into candidates:\n{subtasks_with_types}")
         subtasks_list = extract_lists(subtasks_with_types)
         return subtasks_list

@@ -10,8 +10,6 @@ openai.api_key = os.environ.get('OPENAI_KEY')
 
 # Configure the rate limiter to allow a maximum of 10 calls per minute
 rate_limiter = RateLimiter(max_calls=10, period=60)
-guidance_gpt4_api = guidance.llms.OpenAI("gpt-4", api_key=os.environ.get('OPENAI_KEY'))
-guidance.llm = guidance_gpt4_api
 
 
 def call_openai_api(prompt, max_tokens=None, temperature=1.0, strip=False):

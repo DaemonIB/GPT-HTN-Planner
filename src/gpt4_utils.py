@@ -3,7 +3,6 @@ import os
 from openai_api import call_openai_api, log_response
 from text_utils import trace_function_calls
 from guidance_prompts import htn_prompts
-from openai_api import guidance_gpt4_api
 
 # Determines if the current world state matches the goal state
 @trace_function_calls
@@ -28,7 +27,7 @@ def get_initial_task(goal):
 
 @trace_function_calls
 def is_task_primitive(task_name, capabilities_text):
-    response = htn_prompts.is_task_primitive(task_name, capabilities_text, guidance_gpt4_api)
+    response = htn_prompts.is_task_primitive(task_name, capabilities_text)
 
     task_type = response.strip()
     return task_type == "primitive"
