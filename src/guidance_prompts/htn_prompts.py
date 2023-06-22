@@ -17,6 +17,8 @@ def extract_and_format_information(webpage_content):
     return output['extracted_info']
 
 def check_subtasks(task, subtasks, capabilities_input):
+    task_statuses = ['True', 'False']
+
     check_subtasks_program = guidance('''
     {{#system~}}
     You are a helpful assistant.
@@ -28,10 +30,10 @@ def check_subtasks(task, subtasks, capabilities_input):
     '{{capabilities_input}}'. Return 'True' if they meet the requirements or 'False' otherwise.
     {{~/user}}
     {{#assistant~}}
-    {{#select "result"}} True{{or}} False{{/select}}
+    {{select "result" options=task_statuses}}
     {{~/assistant}}''', llm=guidance_gpt4_api)
 
-    response = check_subtasks_program(task=task, subtasks=subtasks, capabilities_input=capabilities_input)
+    response = check_subtasks_program(task=task, subtasks=subtasks, capabilities_input=capabilities_input, task_statuses=task_statuses)
     result = response["result"].strip().lower()
 
     return result
@@ -70,6 +72,9 @@ def suggest_new_query(query):
     return output['new_query']
 
 def update_plan_output(task_name, task_description, elapsed_time, time_limit, context_window):
+    task_statuses = ['not started', 'in progress', 'completed']
+    action_types = ['update', 'insert', 'delete']
+
     structured_prompt = guidance('''
     {{#system~}}
     You are a helpful assistant.
@@ -85,12 +90,12 @@ def update_plan_output(task_name, task_description, elapsed_time, time_limit, co
     
     {{#user~}}Status:{{~/user}}
     {{#assistant~}}
-    {{#select "status"}} not started{{or}} in progress{{or}} completed{{/select}}
+    {{select "status" options=task_statuses}}
     {{~/assistant}}
     
     {{#user~}}Action:{{~/user}}
     {{#assistant~}}
-    {{#select "action"}} update{{or}} insert{{or}} delete{{/select}}
+    {{select "action" options=action_types}}
     {{~/assistant}}
     
     {{#user~}}Details:{{~/user}}
@@ -106,7 +111,9 @@ def update_plan_output(task_name, task_description, elapsed_time, time_limit, co
         task_description=task_description,
         elapsed_time=elapsed_time,
         time_limit=time_limit,
-        context_window=context_window
+        context_window=context_window,
+        task_statuses=task_statuses,
+        action_types=action_types
     )
 
     status = output['status']
@@ -125,6 +132,8 @@ def update_plan_output(task_name, task_description, elapsed_time, time_limit, co
     return { "status": status, "action": action, "details": details }
 
 def confirm_deliverable_changes(deliverable_content, updated_content):
+    confirm_choices = ['yes', 'no']
+
     confirm_changes = guidance('''
     {{#system}}You are a helpful agent{{/system}}
     {{#user}}
@@ -137,11 +146,12 @@ def confirm_deliverable_changes(deliverable_content, updated_content):
 
     Type 'yes' to confirm the changes or 'no' to revert them.
     {{/user}}
-    {{#assistant}}{{#select "confirm"}} yes{{or}} no{{/select}}{{/assistant}}
+    {{#assistant}}{{select "confirm" options=confirm_choices}}{{/assistant}}
     ''')
 
     result = confirm_changes(deliverable_content=deliverable_content,
-                             updated_content=updated_content)
+                             updated_content=updated_content,
+                             confirm_choices=confirm_choices)
     return result['confirm']
 
 
@@ -163,16 +173,22 @@ def translate(original_task, capabilities_input):
 
 
 def is_task_primitive(task_name, capabilities_text):
+    task_types = ['primitive', 'compound']
+
     primitive_check = guidance('''
     {{#system}}You are a helpful agent{{/system}}
 
-    {{#user}}Given the task '{{task_name}}' and the capabilities '{{capabilities_text}}',
-    determine if the task is primitive or compound.
-    Please provide the answer as 'primitive' or 'compound':{{/user}}
-    {{#assistant}}{{#select "choice"}} primitive{{or}} compound{{/select}}{{/assistant}}""")
+    {{#user}}
+    Given the task '{{task_name}}' and the capabilities '{{capabilities_text}}',
+    determine if the task is primitive which cannot be broken up further or compound which can be broken down more.
+    Please provide the answer as 'primitive' or 'compound':
+    {{/user}}
+    {{~#assistant~}}
+    {{select "choice" options=task_types}}
+    {{~/assistant~}}
     ''', llm=guidance_gpt4_api)
 
-    result = primitive_check(task_name=task_name, capabilities_text=capabilities_text)
+    result = primitive_check(task_name=task_name, capabilities_text=capabilities_text, task_types=task_types)
     return result['choice']
 
 
