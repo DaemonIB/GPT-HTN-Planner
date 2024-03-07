@@ -5,12 +5,11 @@ from openai_api import call_openai_api, log_response
 import math
 import sys
 import Levenshtein
-import gensim.downloader as api
 
 # Constants
 EPSILON = sys.float_info.epsilon
-PROMPT_SIZE = 25
-GRID_SIZE = int(math.sqrt(PROMPT_SIZE))
+PLAN_SIZE = 25
+GRID_SIZE = int(math.sqrt(PLAN_SIZE))
 # Target z-score threshold, the desired number of std devs above the mean a score needs to be for the program to end
 TARGET_Z_SCORE = 2
 # The minimum number of generations needed to begin check if the z-score produced a good result
@@ -30,36 +29,25 @@ max_mutation_rate = 0.5
 min_crossover_rate = 0.1
 max_crossover_rate = 0.9
 
-# Load pre-trained Word2Vec model
-word2vec_model = api.load("word2vec-google-news-300")
+def generate_initial_plans(user_goal, plan_size):
+    print("Generating initial plans...")
+    initial_plans = []
 
-# Normalize the vectors (important for speeding up WMD computation)
-word2vec_model.init_sims(replace=True)
-
-def cosine_similarity(text1, text2):
-    # Compute the Word Mover's Distance between the two texts
-    distance = word2vec_model.wmdistance(text1, text2)
-    return 1 / (1 + distance)
-
-def generate_initial_prompts(user_goal, prompt_size):
-    print("Generating initial prompts...")
-    initial_prompts = []
-
-    for i in range(prompt_size):
-        prompt = call_openai_api(
-            f"Generate a diverse prompt related to solving the following problem: '{user_goal}'. "
+    for i in range(plan_size):
+        plan = call_openai_api(
+            f"Generate a diverse plan related to solving the following problem: '{user_goal}'. "
             f"Consider the problem domain, any constraints or limitations, and the desired format of the solution.",
             max_tokens=500,
             temperature=1.0,
             strip=True
         )
-        initial_prompts.append(prompt)
-        print(f"Generated prompt {i}")
+        initial_plans.append(plan)
+        print(f"Generated plan {i}")
 
-    return initial_prompts
+    return initial_plans
 
 def create_toroidal_grid(population, grid_size):
-    second_dimension = PROMPT_SIZE // grid_size
+    second_dimension = PLAN_SIZE // grid_size
     grid = np.array(population).reshape(grid_size, second_dimension)
     return grid
 
@@ -73,59 +61,47 @@ def get_neighborhood(grid, x, y, neighborhood_size):
             neighbors.append(grid[nx, ny])
     return neighbors
 
-def mutate_prompt(prompt):
-    mutated_prompt = call_openai_api(
-        f"Modify the following prompt to make it more effective: '{prompt}'",
+def mutate_plan(plan):
+    mutated_plan = call_openai_api(
+        f"Modify the following plan to make it more effective: '{plan}'",
         max_tokens=500,
         temperature=1.0,
         strip=True
     )
 
-    return mutated_prompt.strip()
+    return mutated_plan.strip()
 
 def llm_crossover(parent_1, parent_2):
-    child_prompt = call_openai_api(
-        f"Create a new prompt by combining the best features of the following two prompts: '{parent_1}' and '{parent_2}'",
+    child_plan = call_openai_api(
+        f"Create a new plan by combining the best features of the following two plans: '{parent_1}' and '{parent_2}'",
         max_tokens=500,
         temperature=0.5,
         strip=True
     )
 
-    return child_prompt.strip()
+    return child_plan.strip()
 
-def generate_result(prompt):
-    result = call_openai_api(
-        prompt,
-        max_tokens=500,
-        temperature=0.5,
-        strip=True
-    )
-
-    return result
-
-def fitness_score(prompt, neighbors, memoized_scores, user_goal):
+def fitness_score(plan, neighbors, memoized_scores, user_goal):
     print("Calculating fitness scores...")
 
-    if prompt in memoized_scores:
-        score = memoized_scores[prompt]
+    if plan in memoized_scores:
+        score = memoized_scores[plan]
     else:
-        result = generate_result(prompt)
         score_str = call_openai_api(
-            f"Rate the quality of the solution '{result}' for the problem '{user_goal}'. "
-            f"Rate it on a scale from 0 to 1, where 0 represents a poor solution and 1 represents an excellent solution:",
+            f"Rate the quality of the plan '{plan}' for the problem '{user_goal}'. "
+            f"Rate it on a scale from 0 to 1, where 0 represents a poor plan and 1 represents an excellent plan:",
             max_tokens=10,
             temperature=0.5,
             strip=True
         )
-        # score_str = cosine_similarity(result, user_goal)
 
         try:
             score = float(score_str)
         except ValueError:
-            print(f"Error: Unable to convert '{score_str}' to float for prompt: {prompt}")
+            print(f"Error: Unable to convert '{score_str}' to float for plan: {plan}")
             score = 0
 
-        memoized_scores[prompt] = score
+        memoized_scores[plan] = score
 
     neighbor_scores = [memoized_scores.get(neighbor, 0) for neighbor in neighbors]
 
@@ -185,8 +161,8 @@ def update_mutation_crossover_rates(mutation_rate, crossover_rate, diversity, mi
     return mutation_rate, crossover_rate
 
 def main(user_goal):
-    initial_prompts = generate_initial_prompts(user_goal, PROMPT_SIZE)
-    grid = create_toroidal_grid(initial_prompts, GRID_SIZE)
+    initial_plans = generate_initial_plans(user_goal, PLAN_SIZE)
+    grid = create_toroidal_grid(initial_plans, GRID_SIZE)
     generation = 0
     memoized_scores = {}
 
@@ -224,14 +200,10 @@ def main(user_goal):
         max_fitness = np.max(z_scores)
         print(f"Max fitness: {max_fitness}")
 
-        best_prompt = grid[np.unravel_index(np.argmax(z_scores), grid.shape)]
-        best_result = generate_result(
-            f"{best_prompt} Consider the problem domain, any constraints or limitations, and the desired format of the solution."
-            )
-        print(f"Current best prompt: {best_prompt}\nFitness: {max_fitness}\nBest result: {best_result}\n")
+        best_plan = grid[np.unravel_index(np.argmax(z_scores), grid.shape)]
+        print(f"Current best plan: {best_plan}\nFitness: {max_fitness}\n")
 
-        log_response("best_prompt", best_prompt)
-        log_response("best_result", best_result)
+        log_response("best_plan", best_plan)
 
         # Determine if the current "max_fitness" is "TARGET_Z_SCORE" std deviations above the mean
         if max_fitness >= TARGET_Z_SCORE and generation > MIN_TARGET_GENERATION:
@@ -246,14 +218,14 @@ def main(user_goal):
                 if random.random() < crossover_rate:
                     child = llm_crossover(parent_1, parent_2)
                 else:
-                    child = mutate_prompt(parent_1) if random.random() < 0.5 else mutate_prompt(parent_2)
+                    child = mutate_plan(parent_1) if random.random() < 0.5 else mutate_plan(parent_2)
 
                 grid[x, y] = child
 
         print(f"Progress: Generation {generation} completed. Moving to the next generation...\n")
         time.sleep(PROGRESS_DELAY)  # Added to introduce a small delay between generations
 
-    print(f"Final best prompt: {best_prompt}\nFitness: {max_fitness}\nBest result: {best_result}")
+    print(f"Final best plan: {best_plan}\nFitness: {max_fitness}")
 
 if __name__ == "__main__":
     user_goal = input("Enter your goal/problem: ")

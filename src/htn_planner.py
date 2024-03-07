@@ -9,12 +9,13 @@ from text_utils import extract_lists, trace_function_calls
 from guidance_prompts import htn_prompts
 
 class HTNPlanner:
-    def __init__(self, initial_state, goal_task, capabilities_input, max_depth=5, send_update_callback=None):
+    def __init__(self, initial_state, goal_task, capabilities_input, max_depth=3, send_update_callback=None, enable_check_subtasks=False):
         self.initial_state = initial_state
         self.goal_task = goal_task
         self.capabilities_input = capabilities_input
         self.max_depth = max_depth
         self.send_update_callback = send_update_callback
+        self.enable_check_subtasks = enable_check_subtasks
 
     def htn_planning(self):
         # Storage for successful task_node's so that they don't need to get regenerated for similar inputs
@@ -71,6 +72,9 @@ class HTNPlanner:
     # Add a new function to check if subtasks meet the requirements
     @trace_function_calls
     def check_subtasks(self, task, subtasks, capabilities_input):
+        if not self.enable_check_subtasks:
+            return True
+
         result = htn_prompts.check_subtasks(task, subtasks, capabilities_input)
         log_response("check_subtasks", result)
         return result == 'true'
@@ -127,7 +131,12 @@ class HTNPlanner:
                 subtasks_list = []
                 for _ in range(n_candidates):
                     subtasks_list = self.get_subtasks(task, decompose_state, remaining_decompositions, capabilities_input)
-                    score = self.evaluate_candidate(task, [subtask for subtask in subtasks_list], capabilities_input)
+
+                    try:
+                        score = self.evaluate_candidate(task, [subtask for subtask in subtasks_list], capabilities_input)
+                    except ValueError:
+                        score = 0
+
                     candidates.append((subtasks_list, score))
 
                 # Sort candidates by their score
@@ -149,8 +158,8 @@ class HTNPlanner:
 
                 if success or best_candidate is not None:
                     for subtask in subtasks_list:
-                        if send_update_callback:  # Add this line
-                            send_update_callback(task_node)  # Add this line
+                        if send_update_callback:
+                            send_update_callback(task_node)
 
                         subtask_node = TaskNode(subtask, parent=task_node)
                         task_node.add_child(subtask_node)

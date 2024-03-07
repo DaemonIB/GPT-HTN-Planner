@@ -1,5 +1,6 @@
 import datetime
 import os
+import random
 import time
 
 import openai
@@ -16,13 +17,16 @@ def call_openai_api(prompt, max_tokens=None, temperature=1.0, strip=False):
     retries = 3
     delay = 5
 
+    # Random seed is used to prevent the same response from being generated for every request
+    seed = random.randint(0, 1000000)
+
     while retries > 0:
         try:
             # Use the rate limiter to ensure the API is not called too frequently
             with rate_limiter:
                 response = openai.ChatCompletion.create(
                     model="gpt-4",
-                    messages=[{"role": "system", "content": prompt}],
+                    messages=[{"role": "system", "content": f"{seed} - {prompt}"}],
                     max_tokens=max_tokens,
                     n=1,
                     stop=None,

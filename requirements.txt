@@ -19,3 +19,5 @@ flask~=2.2.2
 beautifulsoup4~=4.12.2
 numpy~=1.24.3
 levenshtein~=0.21.1
+gensim
+outlines

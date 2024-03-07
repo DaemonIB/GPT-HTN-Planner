@@ -8,6 +8,8 @@ import heapq
 import random
 from gpt4_utils import gpt4_is_goal, can_execute, log_state_change
 from openai_api import call_openai_api, log_response
+from src.guidance_prompts import htn_prompts
+from src.guidance_prompts.htn_prompts import calculate_weight
 from task_node import TaskNode
 from text_utils import extract_lists, trace_function_calls
 from graph_manager import GraphManager
@@ -146,45 +148,21 @@ class SearchPlanner:
 
     @trace_function_calls
     def generate_task(self, state_a, state_b):
-        good_task_description = (
-            "A good task should be relevant, achievable with given capabilities, efficient, low-risk, "
-            "minimally dependent on user involvement, and contribute significantly towards the goal."
-        )
-        prompt = (
-            f"Given the current state '{state_a}' and the desired state '{state_b}', "
-            f"generate a single task that transitions between these states using the following capabilities: "
-            f"'{self.capabilities_input}'. Please provide the task in a single line without any commentary "
-            f"or superfluous text. Keep in mind the characteristics of a good task: {good_task_description}"
-        )
-        response = call_openai_api(prompt)
-        task = response.choices[0].message.content.strip()
+        task = htn_prompts.generate_task(state_a, state_b, self.capabilities_input)
         log_response("generate_task", task)
         return task
 
     @trace_function_calls
     def translate_task(self, task, capabilities_input):
-        prompt = (f"Translate the task '{task}' into a form that can be executed using the following capabilities: "
-                  f"'{capabilities_input}'. Provide the executable form in a single line without any commentary "
-                  f"or superfluous text.")
-        response = call_openai_api(prompt)
-        translated_task = response.choices[0].message.content.strip()
+        translated_task = htn_prompts.translate_task(task, capabilities_input)
         log_response("translate_task", translated_task)
         return translated_task
 
     @trace_function_calls
     def calculate_weight(self, state_a, state_b, task):
-        criteria_prompt = generate_criteria_prompt()
-        prompt = (
-            f"Please provide a float value representing the weight of the edge between state '{state_a}' and state '{state_b}' for the task '{task}', considering the following criteria: "
-            f"{criteria_prompt}"
-            f"Lower values are considered better. Ensure the response is a float value within the range [{WEIGHT_MIN_VALUE}, {WEIGHT_MAX_VALUE}]."
-        )
-
         max_retries = 5
         for attempt in range(max_retries):
-            response = call_openai_api(prompt, max_tokens=10)
-
-            response_str = response.choices[0].message.content.strip()
+            response_str = calculate_weight(state_a, state_b, task, WEIGHT_MIN_VALUE, WEIGHT_MAX_VALUE, generate_criteria_prompt())
 
             # Check if the response is a valid float
             if is_float(response_str):
@@ -221,19 +199,9 @@ class SearchPlanner:
 
     @trace_function_calls
     def heuristic(self, current, next_node, goal):
-        criteria_prompt = generate_criteria_prompt()
-        prompt = (
-            f"Please estimate the remaining cost to reach the goal state '{goal}' from the current state '{next_node}', "
-            f"considering the following criteria: "
-            f"{criteria_prompt}"
-            f"Lower values are considered better. Ensure the response is a float value within the range [{WEIGHT_MIN_VALUE}, {WEIGHT_MAX_VALUE}]."
-        )
-
         max_retries = 5
         for attempt in range(max_retries):
-            response = call_openai_api(prompt, max_tokens=10)
-
-            response_str = response.choices[0].message.content.strip()
+            response_str = response_str = calculate_weight(next_node, goal, WEIGHT_MIN_VALUE, WEIGHT_MAX_VALUE, generate_criteria_prompt())
 
             # Check if the response is a valid float
             if is_float(response_str):

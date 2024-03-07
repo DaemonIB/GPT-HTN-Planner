@@ -4,6 +4,7 @@ from openai_api import call_openai_api, log_response
 from text_utils import trace_function_calls
 from guidance_prompts import htn_prompts
 
+
 # Determines if the current world state matches the goal state
 @trace_function_calls
 def gpt4_is_goal(state, goal_task):
@@ -16,6 +17,7 @@ def gpt4_is_goal(state, goal_task):
     log_response("gpt4_is_goal", response.choices[0].message.content.strip())
     return response.choices[0].message.content.strip().lower() == "true"
 
+
 # Provides an initial high level task that is likely to meet the goal requirements to start performing decomposition from
 @trace_function_calls
 def get_initial_task(goal):
@@ -25,6 +27,7 @@ def get_initial_task(goal):
     log_response("get_initial_task", response.choices[0].message.content.strip())
     return response.choices[0].message.content.strip()
 
+
 @trace_function_calls
 def is_task_primitive(task_name, capabilities_text):
     response = htn_prompts.is_task_primitive(task_name, capabilities_text)
@@ -32,11 +35,13 @@ def is_task_primitive(task_name, capabilities_text):
     task_type = response.strip()
     return task_type == "primitive"
 
+
 @trace_function_calls
 def compress_capabilities(text):
     prompt = f"Compress the capabilities description '{text}' into a more concise form:"
     response = call_openai_api(prompt)
     return response.choices[0].message.content.strip()
+
 
 # Needs pre-conditions to prevent discontinuities in the graph
 @trace_function_calls
@@ -49,6 +54,7 @@ def can_execute(task, capabilities, state):
 
     log_response("can_execute", response.choices[0].message.content.strip())
     return response.choices[0].message.content.strip().lower() == "true"
+
 
 def log_state_change(prev_state, new_state, task):
     log_dir = "../state_changes"

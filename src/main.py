@@ -13,6 +13,7 @@ app = Flask(__name__)
 CORS(app)  # Add this line to enable CORS
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+
 @trace_function_calls
 def task_node_to_dict(task_node):
     if task_node is None:
@@ -24,13 +25,16 @@ def task_node_to_dict(task_node):
         "children": [task_node_to_dict(child) for child in task_node.children]
     }
 
+
 @socketio.on('connect')
 def handle_connect():
     print('Client connected')
 
+
 @socketio.on('disconnect')
 def handle_disconnect():
     print('Client disconnected')
+
 
 def send_task_node_update(task_node):
     root_task_node = task_node
@@ -39,20 +43,24 @@ def send_task_node_update(task_node):
     task_node_data = task_node_to_dict(root_task_node)
     socketio.emit('task_node_update', task_node_data)
 
+
 def run_server():
-    socketio.run(app, host="127.0.0.1", debug=True, use_reloader=False, port=5000, allow_unsafe_werkzeug=True, log_output=False)
+    socketio.run(app, host="127.0.0.1", debug=True, use_reloader=False, port=5000, allow_unsafe_werkzeug=True,
+                 log_output=False)
+
 
 def print_plan(task_node, depth=0):
     print(f"{'  ' * depth}- {task_node.task_name}")
     for child in task_node.children:
         print_plan(child, depth + 1)
 
+
 def main():
     # Clear the log file at the beginning of each run
     with open('function_trace.log', 'w') as log_file:
         log_file.write("")
 
-    initial_state_input = input("Describe the initial state: ")
+    initial_state_input = input("Describe the initial state (default is 'nothing has happened yet'): ") or "nothing has happened yet"
     goal_input = input("Describe your goal: ")
 
     # Set default capabilities to a Linux terminal with internet access
@@ -92,6 +100,7 @@ def main():
         print_plan(plan)
     else:
         print("No plan found.")
+
 
 if __name__ == '__main__':
     # Run the main function
